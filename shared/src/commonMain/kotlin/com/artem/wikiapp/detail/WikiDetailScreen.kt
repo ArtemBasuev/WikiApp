@@ -6,14 +6,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.artem.wikiapp.data.FavoritesStore
 import com.artem.wikiapp.data.WikiPage
 import com.artem.wikiapp.ui.CategoryChip
 import org.jetbrains.compose.resources.stringResource
@@ -32,13 +29,13 @@ import wikiapp.shared.generated.resources.remove_from_favorites
 @Composable
 fun WikiDetailScreen(
     page: WikiPage?,
+    isFavorite: Boolean,
+    onFavoriteToggle: () -> Unit,
     onBackClick: () -> Unit,
     onLinkClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val backLabel = stringResource(Res.string.back)
-    val favoriteIds by FavoritesStore.favoriteIds.collectAsState()
-    val isFavorite = page != null && page.pageid in favoriteIds
     val favoriteLabel = stringResource(
         if (isFavorite) Res.string.remove_from_favorites else Res.string.add_to_favorites
     )
@@ -58,7 +55,7 @@ fun WikiDetailScreen(
                 },
                 actions = {
                     if (page != null) {
-                        IconButton(onClick = { FavoritesStore.toggle(page.pageid) }) {
+                        IconButton(onClick = onFavoriteToggle) {
                             Text(
                                 text = if (isFavorite) "★" else "☆",
                                 style = MaterialTheme.typography.titleLarge,
@@ -100,7 +97,6 @@ fun WikiDetailScreen(
             )
 
             Spacer(modifier = Modifier.height(4.dp))
-
 
             Text(
                 text = stringResource(Res.string.article_meta, page.length, formatTouched(page.touched)),

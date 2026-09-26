@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
+import com.artem.wikiapp.data.FavoritesStore
 import com.artem.wikiapp.data.mockWikiPages
 import com.artem.wikiapp.detail.WikiDetailScreen
 import com.artem.wikiapp.favorites.WikiFavoritesScreen
@@ -30,6 +31,11 @@ fun App() {
     val systemInDarkTheme = isSystemInDarkTheme()
     var isDarkTheme by remember { mutableStateOf(systemInDarkTheme) }
     val colorScheme = if (isDarkTheme) darkColorScheme() else lightColorScheme()
+
+    // Единственное место в дереве композиции, где мы подписываемся
+    // на глобальный FavoritesStore. Дальше favoriteIds передаётся
+    // вниз как обычный параметр состояния — как и всё остальное состояние.
+    val favoriteIds by FavoritesStore.favoriteIds.collectAsState()
 
     MaterialTheme(colorScheme = colorScheme) {
         val backStack = remember { mutableStateListOf<WikiRoute>(WikiRoute.List) }
@@ -70,6 +76,8 @@ fun App() {
 
                     WikiDetailScreen(
                         page = page,
+                        isFavorite = page != null && page.pageid in favoriteIds,
+                        onFavoriteToggle = { page?.let { FavoritesStore.toggle(it.pageid) } },
                         onBackClick = { backStack.removeLastOrNull() },
                         onLinkClick = { linkedTitle ->
                             val linkedPage = mockWikiPages.find {
@@ -84,6 +92,7 @@ fun App() {
 
                 entry<WikiRoute.Favorites> {
                     WikiFavoritesScreen(
+                        favoriteIds = favoriteIds,
                         onBackClick = { backStack.removeLastOrNull() },
                         onPageClick = { pageId -> backStack.add(WikiRoute.Detail(pageId)) }
                     )

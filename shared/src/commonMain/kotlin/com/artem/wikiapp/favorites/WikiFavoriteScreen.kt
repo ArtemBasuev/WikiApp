@@ -6,14 +6,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.artem.wikiapp.data.FavoritesStore
 import com.artem.wikiapp.data.mockWikiPages
 import org.jetbrains.compose.resources.stringResource
 import wikiapp.shared.generated.resources.Res
@@ -24,11 +21,11 @@ import wikiapp.shared.generated.resources.no_favorites
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WikiFavoritesScreen(
+    favoriteIds: Set<Long>,
     onBackClick: () -> Unit,
     onPageClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val favoriteIds by FavoritesStore.favoriteIds.collectAsState()
     val favoritePages = mockWikiPages.filter { it.pageid in favoriteIds }
     val backLabel = stringResource(Res.string.back)
 
