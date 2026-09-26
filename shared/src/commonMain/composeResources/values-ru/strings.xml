@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">ВикиПедия</string>
+    <string name="search_hint">Поиск в Википедии</string>
+    <string name="back">Назад</string>
+    <string name="details_title">Детали статьи</string>
+    <string name="article_not_found">Статья не найдена</string>
+    <string name="links_title">Ссылки в статье:</string>
+    <string name="article_meta">%1$d байт · Обновлено %2$s</string>
+    <string name="article_source">Источник: %1$s</string>
+    <string name="favorites_title">Избранное</string>
+    <string name="no_favorites">Пока нет избранных статей</string>
+    <string name="add_to_favorites">Добавить в избранное</string>
+    <string name="remove_from_favorites">Убрать из избранного</string>
+    <string name="loading_more">Загрузка…</string>
+    <string name="no_results">Ничего не найдено</string>
+    <string name="switch_theme">Сменить тему</string>
+</resources>
