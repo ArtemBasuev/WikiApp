@@ -2,86 +2,90 @@ package com.artem.wikiapp.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.artem.wikiapp.data.FavoritesStore
-import com.artem.wikiapp.data.WikiPage
-import com.artem.wikiapp.data.mockWikiPages
+import com.artem.wikiapp.data.WikiRepository
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val PAGE_SIZE = 5
 
 class WikiListViewModel(
-    private val onNavigateToDetail: (Long) -> Unit,
+    private val repository: WikiRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WikiListState())
     val state: StateFlow<WikiListState> = _state.asStateFlow()
 
+    private val _effects = Channel<WikiListEffect>(Channel.BUFFERED)
+    val effects: Flow<WikiListEffect> = _effects.receiveAsFlow()
+
     private var searchJob: Job? = null
-    private var filtered: List<WikiPage> = mockWikiPages
-    private var loadedCount = 0
+    private var loadMoreJob: Job? = null
 
     init {
-        FavoritesStore.favoriteIds
+        repository.favoriteIds
             .onEach { ids -> _state.update { it.copy(favoriteIds = ids) } }
             .launchIn(viewModelScope)
 
-        search(filter = "")
+        search(query = "")
     }
 
     fun onIntent(intent: WikiListIntent) {
         when (intent) {
-            is WikiListIntent.PageClicked -> onNavigateToDetail(intent.pageId)
+            is WikiListIntent.PageClicked ->
+                _effects.trySend(WikiListEffect.NavigateToDetail(intent.pageId))
+
             is WikiListIntent.QueryChanged -> {
                 _state.update { it.copy(query = intent.value) }
-                search(filter = intent.value)
+                search(query = intent.value)
             }
+
             is WikiListIntent.LoadMore -> loadMore()
-            is WikiListIntent.FavoriteToggled -> FavoritesStore.toggle(intent.pageId)
+            is WikiListIntent.FavoriteToggled -> repository.toggleFavorite(intent.pageId)
         }
     }
 
-    private fun search(filter: String) {
+    private fun search(query: String) {
         searchJob?.cancel()
+        loadMoreJob?.cancel()
         searchJob = viewModelScope.launch {
-            filtered = if (filter.isBlank()) {
-                mockWikiPages
-            } else {
-                mockWikiPages.filter { page ->
-                    page.title.contains(filter, ignoreCase = true) ||
-                            page.extract.contains(filter, ignoreCase = true)
-                }
+            val result = repository.searchPages(query, offset = 0, limit = PAGE_SIZE)
+            _state.update {
+                it.copy(
+                    items = result.items,
+                    canLoadMore = result.hasMore,
+                    isLoadingMore = false,
+                )
             }
-            loadedCount = 0
-            appendNextPage()
         }
     }
 
     private fun loadMore() {
-        if (_state.value.isLoadingMore || !_state.value.canLoadMore) return
-        viewModelScope.launch {
-            _state.update { it.copy(isLoadingMore = true) }
-            delay(400)
-            appendNextPage()
-            _state.update { it.copy(isLoadingMore = false) }
-        }
-    }
+        val current = _state.value
+        if (current.isLoadingMore || !current.canLoadMore) return
 
-    private fun appendNextPage() {
-        val nextCount = (loadedCount + PAGE_SIZE).coerceAtMost(filtered.size)
-        loadedCount = nextCount
-        _state.update {
-            it.copy(
-                items = filtered.take(nextCount),
-                canLoadMore = nextCount < filtered.size,
+        loadMoreJob = viewModelScope.launch {
+            _state.update { it.copy(isLoadingMore = true) }
+            val result = repository.searchPages(
+                query = current.query,
+                offset = current.items.size,
+                limit = PAGE_SIZE,
             )
+            _state.update {
+                it.copy(
+                    items = it.items + result.items,
+                    canLoadMore = result.hasMore,
+                    isLoadingMore = false,
+                )
+            }
         }
     }
 }

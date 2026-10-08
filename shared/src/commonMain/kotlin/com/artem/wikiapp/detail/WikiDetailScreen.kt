@@ -6,12 +6,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.artem.wikiapp.data.WikiPage
 import com.artem.wikiapp.ui.CategoryChip
 import org.jetbrains.compose.resources.stringResource
 
@@ -28,13 +28,13 @@ import wikiapp.shared.generated.resources.remove_from_favorites
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WikiDetailScreen(
-    page: WikiPage?,
-    isFavorite: Boolean,
-    onFavoriteToggle: () -> Unit,
+    state: WikiDetailState,
+    onIntent: (WikiDetailIntent) -> Unit,
     onBackClick: () -> Unit,
-    onLinkClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val page = state.page
+    val isFavorite = state.isFavorite
     val backLabel = stringResource(Res.string.back)
     val favoriteLabel = stringResource(
         if (isFavorite) Res.string.remove_from_favorites else Res.string.add_to_favorites
@@ -55,7 +55,7 @@ fun WikiDetailScreen(
                 },
                 actions = {
                     if (page != null) {
-                        IconButton(onClick = onFavoriteToggle) {
+                        IconButton(onClick = { onIntent(WikiDetailIntent.FavoriteToggled) }) {
                             Text(
                                 text = if (isFavorite) "★" else "☆",
                                 style = MaterialTheme.typography.titleLarge,
@@ -69,6 +69,18 @@ fun WikiDetailScreen(
         },
         modifier = modifier
     ) { innerPadding ->
+        if (state.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+            return@Scaffold
+        }
+
         if (page == null) {
             Box(
                 modifier = Modifier
@@ -140,7 +152,7 @@ fun WikiDetailScreen(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onLinkClick(link.title) }
+                            .clickable { onIntent(WikiDetailIntent.LinkClicked(link.title)) }
                             .padding(vertical = 4.dp)
                     )
                 }
