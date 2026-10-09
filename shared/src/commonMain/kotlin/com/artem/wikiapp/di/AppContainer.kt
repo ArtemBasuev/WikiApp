@@ -1,4 +1,4 @@
-package com.artem.wikiapp.ui
+package com.artem.wikiapp.di
 
 import com.artem.wikiapp.data.MockWikiRepository
 import com.artem.wikiapp.data.WikiRepository

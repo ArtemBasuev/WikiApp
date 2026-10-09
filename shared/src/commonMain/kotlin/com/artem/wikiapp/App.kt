@@ -24,7 +24,7 @@ import com.artem.wikiapp.data.WikiRepository
 import com.artem.wikiapp.detail.WikiDetailEffect
 import com.artem.wikiapp.detail.WikiDetailScreen
 import com.artem.wikiapp.detail.WikiDetailViewModel
-import com.artem.wikiapp.ui.AppContainer
+import com.artem.wikiapp.di.AppContainer
 import com.artem.wikiapp.favorites.WikiFavoritesEffect
 import com.artem.wikiapp.favorites.WikiFavoritesScreen
 import com.artem.wikiapp.favorites.WikiFavoritesViewModel
