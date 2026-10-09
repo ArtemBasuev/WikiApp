@@ -1,14 +1,18 @@
 package com.artem.wikiapp.data
 
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 class MockWikiRepository(
     private val pages: List<WikiPage> = mockWikiPages,
     private val loadMoreLatencyMs: Long = 400,
 ) : WikiRepository {
 
-    override val favoriteIds: StateFlow<Set<Long>> = FavoritesStore.favoriteIds
+    private val _favoriteIds = MutableStateFlow<Set<Long>>(emptySet())
+    override val favoriteIds: StateFlow<Set<Long>> = _favoriteIds.asStateFlow()
 
     override suspend fun searchPages(query: String, offset: Int, limit: Int): PagedResult<WikiPage> {
         if (offset > 0) delay(loadMoreLatencyMs)
@@ -34,5 +38,9 @@ class MockWikiRepository(
     override suspend fun getPages(pageIds: Set<Long>): List<WikiPage> =
         pages.filter { it.pageid in pageIds }
 
-    override fun toggleFavorite(pageId: Long) = FavoritesStore.toggle(pageId)
+    override fun toggleFavorite(pageId: Long) {
+        _favoriteIds.update { current ->
+            if (pageId in current) current - pageId else current + pageId
+        }
+    }
 }
