@@ -18,7 +18,6 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "com.artem.wikiapp.MainKt"
-
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.artem.wikiapp"

@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">WikiApp</string>
+    <string name="search_hint">Search Wikipedia</string>
+    <string name="back">Back</string>
+    <string name="details_title">Article details</string>
+    <string name="article_not_found">Article not found</string>
+    <string name="links_title">Links in this article:</string>
+    <string name="article_meta">%1$d bytes · Updated %2$s</string>
+    <string name="article_source">Source: %1$s</string>
+    <string name="favorites_title">Favorites</string>
+    <string name="no_favorites">You have no favorite articles yet</string>
+    <string name="add_to_favorites">Add to favorites</string>
+    <string name="remove_from_favorites">Remove from favorites</string>
+    <string name="loading_more">Loading more…</string>
+    <string name="no_results">Nothing found</string>
+    <string name="switch_theme">Switch theme</string>
+</resources>
