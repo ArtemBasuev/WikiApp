@@ -2,7 +2,6 @@ package com.artem.wikiapp.favorites
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.artem.wikiapp.data.WikiPage
 import com.artem.wikiapp.data.WikiRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -15,17 +14,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 
-data class WikiFavoritesState(
-    val pages: List<WikiPage> = emptyList(),
-)
 
-sealed interface WikiFavoritesIntent {
-    data class PageClicked(val pageId: Long) : WikiFavoritesIntent
-}
-
-sealed interface WikiFavoritesEffect {
-    data class NavigateToDetail(val pageId: Long) : WikiFavoritesEffect
-}
 
 class WikiFavoritesViewModel(
     private val repository: WikiRepository,

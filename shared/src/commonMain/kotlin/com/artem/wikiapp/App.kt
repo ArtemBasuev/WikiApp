@@ -20,11 +20,11 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.artem.wikiapp.data.MockWikiRepository
 import com.artem.wikiapp.data.WikiRepository
 import com.artem.wikiapp.detail.WikiDetailEffect
 import com.artem.wikiapp.detail.WikiDetailScreen
 import com.artem.wikiapp.detail.WikiDetailViewModel
-import com.artem.wikiapp.di.AppContainer
 import com.artem.wikiapp.favorites.WikiFavoritesEffect
 import com.artem.wikiapp.favorites.WikiFavoritesScreen
 import com.artem.wikiapp.favorites.WikiFavoritesViewModel
@@ -35,7 +35,8 @@ import com.artem.wikiapp.navigation.WikiRoute
 import com.artem.wikiapp.ui.SimpleViewModelFactory
 
 @Composable
-fun App(repository: WikiRepository = AppContainer.wikiRepository) {
+fun App() {
+    val repository: WikiRepository = remember { MockWikiRepository() }
     val systemInDarkTheme = isSystemInDarkTheme()
     var isDarkTheme by remember { mutableStateOf(systemInDarkTheme) }
     val colorScheme = if (isDarkTheme) darkColorScheme() else lightColorScheme()

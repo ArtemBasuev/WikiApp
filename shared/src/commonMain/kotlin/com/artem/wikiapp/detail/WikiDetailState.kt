@@ -7,12 +7,3 @@ data class WikiDetailState(
     val page: WikiPage? = null,
     val isFavorite: Boolean = false,
 )
-
-sealed interface WikiDetailIntent {
-    data object FavoriteToggled : WikiDetailIntent
-    data class LinkClicked(val title: String) : WikiDetailIntent
-}
-
-sealed interface WikiDetailEffect {
-    data class NavigateToDetail(val pageId: Long) : WikiDetailEffect
-}

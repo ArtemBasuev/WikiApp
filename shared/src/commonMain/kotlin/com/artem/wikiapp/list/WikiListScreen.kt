@@ -43,10 +43,11 @@ fun WikiListScreen(
     val listState = rememberLazyListState()
     val favoritesLabel = stringResource(Res.string.favorites_title)
     val themeLabel = stringResource(Res.string.switch_theme)
-    val shouldLoadMore by remember {
+    val itemCount = state.items.size
+    val shouldLoadMore by remember(itemCount) {
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            state.items.isNotEmpty() && lastVisible >= state.items.size - 3
+            itemCount > 0 && lastVisible >= itemCount - 3
         }
     }
 
