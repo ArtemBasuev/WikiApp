@@ -11,6 +11,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.artem.wikiapp.ui.ErrorBox
+import com.artem.wikiapp.ui.LoadingBox
 import org.jetbrains.compose.resources.stringResource
 import wikiapp.shared.generated.resources.Res
 import wikiapp.shared.generated.resources.back
@@ -45,50 +47,53 @@ fun WikiFavoritesScreen(
         },
         modifier = modifier
     ) { innerPadding ->
-        if (favoritePages.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+        val contentModifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)
+
+        when {
+            favoritePages.isNotEmpty() -> LazyColumn(
+                modifier = contentModifier.padding(16.dp)
             ) {
+                items(items = favoritePages, key = { it.pageid }) { page ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onIntent(WikiFavoritesIntent.PageClicked(page.pageid)) }
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = page.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = page.extract,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+
+            state.isLoading -> LoadingBox(contentModifier)
+
+            state.hasError -> ErrorBox(
+                onRetry = { onIntent(WikiFavoritesIntent.RetryRequested) },
+                modifier = contentModifier
+            )
+
+            else -> Box(contentModifier) {
                 Text(
                     text = stringResource(Res.string.no_favorites),
                     modifier = Modifier.padding(16.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-            return@Scaffold
-        }
-
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-        ) {
-            items(items = favoritePages, key = { it.pageid }) { page ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onIntent(WikiFavoritesIntent.PageClicked(page.pageid)) }
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = page.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = page.extract,
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
