@@ -27,6 +27,15 @@ class WikiApi(
         pageProps(withLinks = false)
     }
 
+    suspend fun browse(cursor: String?, limit: Int): Result<WikiResponseDto> = request {
+        parameter("generator", "allpages")
+        parameter("gapnamespace", 0)
+        parameter("gapfilterredir", "nonredirects") // без перенаправлений
+        parameter("gaplimit", limit)
+        if (cursor != null) parameter("gapcontinue", cursor)
+        pageProps(withLinks = false)
+    }
+
     suspend fun fetchById(pageId: Long): Result<WikiResponseDto> = request {
         parameter("pageids", pageId)
         pageProps(withLinks = true)

@@ -15,8 +15,10 @@ data class WikiResponseDto(
 data class WikiQueryDto(val pages: List<WikiPageDto> = emptyList())
 
 @Serializable
-data class WikiContinueDto(val gsroffset: Int? = null)
-
+data class WikiContinueDto(
+    val gsroffset: Int? = null,
+    val gapcontinue: String? = null,
+)
 @Serializable
 data class WikiErrorDto(val code: String = "", val info: String = "")
 

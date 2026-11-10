@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 
-private const val DEFAULT_QUERY = "programming language"
 private const val IDS_CHUNK = 20
 
 class WikiRepositoryImpl(
@@ -22,22 +21,35 @@ class WikiRepositoryImpl(
     private val _favoriteIds = MutableStateFlow<Set<Long>>(emptySet())
     override val favoriteIds: StateFlow<Set<Long>> = _favoriteIds.asStateFlow()
 
-    // Кэш только в памяти. Из списка приходят страницы без links, из detail-запроса: с ними.
     private val summaries = MutableStateFlow<Map<Long, WikiPage>>(emptyMap())
     private val details = MutableStateFlow<Map<Long, WikiPage>>(emptyMap())
 
     override suspend fun searchPages(
         query: String,
-        offset: Int,
+        cursor: String?,
         limit: Int,
     ): Result<PagedResult<WikiPage>> = withContext(dispatcher) {
-        api.search(query.trim().ifBlank { DEFAULT_QUERY }, offset, limit).map { dto ->
-            val items = dto.query?.pages.orEmpty()
-                .filter { !it.missing }
-                .sortedBy { it.index }
-                .map { it.toWikiPage() }
+        val trimmed = query.trim()
+        val response = if (trimmed.isEmpty()) {
+            api.browse(cursor, limit)
+        } else {
+            api.search(trimmed, offset = cursor?.toIntOrNull() ?: 0, limit = limit)
+        }
+        response.map { dto ->
+            val pages = dto.query?.pages.orEmpty().filter { !it.missing }
+            val ordered = if (trimmed.isEmpty()) {
+                pages.sortedBy { it.title.replace(' ', '_') }
+            } else {
+                pages.sortedBy { it.index }
+            }
+            val items = ordered.map { it.toWikiPage() }
             summaries.update { it + items.associateBy(WikiPage::pageid) }
-            PagedResult(items = items, hasMore = dto.continuation?.gsroffset != null)
+            val next = if (trimmed.isEmpty()) {
+                dto.continuation?.gapcontinue
+            } else {
+                dto.continuation?.gsroffset?.toString()
+            }
+            PagedResult(items = items, nextCursor = next)
         }
     }
 

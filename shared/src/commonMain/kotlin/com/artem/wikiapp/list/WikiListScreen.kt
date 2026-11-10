@@ -38,6 +38,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+
 
 @Composable
 fun WikiListScreen(
@@ -53,6 +57,7 @@ fun WikiListScreen(
     val themeLabel = stringResource(Res.string.switch_theme)
     val itemCount = state.items.size
     val focusManager = LocalFocusManager.current
+    var lastFirstId by rememberSaveable { mutableStateOf(state.items.firstOrNull()?.pageid) }
     val shouldLoadMore by remember(itemCount) {
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
@@ -68,7 +73,11 @@ fun WikiListScreen(
     }
 
     LaunchedEffect(state.items.firstOrNull()?.pageid) {
-        listState.scrollToItem(0)
+        val firstId = state.items.firstOrNull()?.pageid
+        if (firstId != lastFirstId) {
+            lastFirstId = firstId
+            listState.scrollToItem(0)
+        }
     }
 
     AppScaffold(

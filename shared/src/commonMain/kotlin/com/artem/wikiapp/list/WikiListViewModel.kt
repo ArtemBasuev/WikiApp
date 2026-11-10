@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-private const val PAGE_SIZE = 10
+private const val PAGE_SIZE = 20
 private const val SEARCH_DEBOUNCE_MS = 400L
 
 class WikiListViewModel(
@@ -34,7 +34,7 @@ class WikiListViewModel(
 
     private var activeQuery = ""
 
-    private var nextOffset = 0
+    private var nextCursor: String? = null
 
     init {
         repository.favoriteIds
@@ -74,9 +74,9 @@ class WikiListViewModel(
             if (debounce) delay(SEARCH_DEBOUNCE_MS)
             _state.update { it.copy(isLoading = true, hasError = false) }
 
-            repository.searchPages(query, offset = 0, limit = PAGE_SIZE).fold(
+            repository.searchPages(query, cursor = null, limit = PAGE_SIZE).fold(
                 onSuccess = { page ->
-                    nextOffset = page.items.size
+                    nextCursor = page.nextCursor
                     _state.update {
                         it.copy(
                             items = page.items,
@@ -87,7 +87,7 @@ class WikiListViewModel(
                     }
                 },
                 onFailure = {
-                    nextOffset = 0
+                    nextCursor = null
                     _state.update {
                         it.copy(items = emptyList(), canLoadMore = false, isLoading = false, hasError = true)
                     }
@@ -103,12 +103,11 @@ class WikiListViewModel(
         loadMoreJob = viewModelScope.launch {
             _state.update { it.copy(isLoadingMore = true, loadMoreFailed = false) }
 
-            repository.searchPages(activeQuery, offset = nextOffset, limit = PAGE_SIZE).fold(
+            repository.searchPages(activeQuery, cursor = nextCursor, limit = PAGE_SIZE).fold(
                 onSuccess = { page ->
-                    nextOffset += page.items.size
+                    nextCursor = page.nextCursor
                     _state.update {
                         it.copy(
-                            // Порции могут пересечься, а ключи в LazyColumn обязаны быть уникальны.
                             items = (it.items + page.items).distinctBy { p -> p.pageid },
                             canLoadMore = page.hasMore,
                             isLoadingMore = false,
