@@ -24,7 +24,6 @@ import com.artem.wikiapp.data.WikiRepository
 import com.artem.wikiapp.detail.WikiDetailEffect
 import com.artem.wikiapp.detail.WikiDetailScreen
 import com.artem.wikiapp.detail.WikiDetailViewModel
-import com.artem.wikiapp.di.AppContainer
 import com.artem.wikiapp.favorites.WikiFavoritesEffect
 import com.artem.wikiapp.favorites.WikiFavoritesScreen
 import com.artem.wikiapp.favorites.WikiFavoritesViewModel
@@ -33,9 +32,16 @@ import com.artem.wikiapp.list.WikiListScreen
 import com.artem.wikiapp.list.WikiListViewModel
 import com.artem.wikiapp.navigation.WikiRoute
 import com.artem.wikiapp.ui.SimpleViewModelFactory
+import com.artem.wikiapp.config.WikiConfig
+import com.artem.wikiapp.data.WikiRepositoryImpl
+import com.artem.wikiapp.data.remote.WikiApi
+import com.artem.wikiapp.data.remote.wikiHttpClient
 
 @Composable
-fun App(repository: WikiRepository = AppContainer.wikiRepository) {
+fun App() {
+    val repository: WikiRepository = remember {
+        WikiRepositoryImpl(WikiApi(wikiHttpClient(WikiConfig.BASE_URL, WikiConfig.USER_AGENT)))
+    }
     val systemInDarkTheme = isSystemInDarkTheme()
     var isDarkTheme by remember { mutableStateOf(systemInDarkTheme) }
     val colorScheme = if (isDarkTheme) darkColorScheme() else lightColorScheme()

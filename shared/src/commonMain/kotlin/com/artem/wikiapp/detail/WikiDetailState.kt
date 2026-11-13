@@ -2,17 +2,12 @@ package com.artem.wikiapp.detail
 
 import com.artem.wikiapp.data.WikiPage
 
+enum class LinkLookupError { NotFound, Failed }
+
 data class WikiDetailState(
     val isLoading: Boolean = true,
+    val hasError: Boolean = false,
     val page: WikiPage? = null,
     val isFavorite: Boolean = false,
+    val linkError: LinkLookupError? = null,
 )
-
-sealed interface WikiDetailIntent {
-    data object FavoriteToggled : WikiDetailIntent
-    data class LinkClicked(val title: String) : WikiDetailIntent
-}
-
-sealed interface WikiDetailEffect {
-    data class NavigateToDetail(val pageId: Long) : WikiDetailEffect
-}

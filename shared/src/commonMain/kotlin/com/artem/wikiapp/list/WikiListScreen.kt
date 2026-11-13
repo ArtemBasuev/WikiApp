@@ -20,16 +20,28 @@ import androidx.compose.ui.unit.dp
 import com.artem.wikiapp.data.WikiPage
 import com.artem.wikiapp.ui.AppScaffold
 import com.artem.wikiapp.ui.CategoryChip
+import com.artem.wikiapp.ui.ErrorBox
+import com.artem.wikiapp.ui.LoadingBox
 import org.jetbrains.compose.resources.stringResource
 import wikiapp.shared.generated.resources.Res
 import wikiapp.shared.generated.resources.add_to_favorites
 import wikiapp.shared.generated.resources.app_name
+import wikiapp.shared.generated.resources.error_generic
 import wikiapp.shared.generated.resources.favorites_title
 import wikiapp.shared.generated.resources.loading_more
 import wikiapp.shared.generated.resources.no_results
 import wikiapp.shared.generated.resources.remove_from_favorites
+import wikiapp.shared.generated.resources.retry
 import wikiapp.shared.generated.resources.search_hint
 import wikiapp.shared.generated.resources.switch_theme
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+
 
 @Composable
 fun WikiListScreen(
@@ -43,16 +55,28 @@ fun WikiListScreen(
     val listState = rememberLazyListState()
     val favoritesLabel = stringResource(Res.string.favorites_title)
     val themeLabel = stringResource(Res.string.switch_theme)
-    val shouldLoadMore by remember {
+    val itemCount = state.items.size
+    val focusManager = LocalFocusManager.current
+    var lastFirstId by rememberSaveable { mutableStateOf(state.items.firstOrNull()?.pageid) }
+    val shouldLoadMore by remember(itemCount) {
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            state.items.isNotEmpty() && lastVisible >= state.items.size - 3
+            itemCount > 0 && lastVisible >= itemCount - 3
         }
     }
 
-    LaunchedEffect(shouldLoadMore, state.canLoadMore, state.isLoadingMore) {
-        if (shouldLoadMore && state.canLoadMore && !state.isLoadingMore) {
+
+    LaunchedEffect(shouldLoadMore, state.canLoadMore, state.isLoadingMore, state.loadMoreFailed) {
+        if (shouldLoadMore && state.canLoadMore && !state.isLoadingMore && !state.loadMoreFailed) {
             onIntent(WikiListIntent.LoadMore)
+        }
+    }
+
+    LaunchedEffect(state.items.firstOrNull()?.pageid) {
+        val firstId = state.items.firstOrNull()?.pageid
+        if (firstId != lastFirstId) {
+            lastFirstId = firstId
+            listState.scrollToItem(0)
         }
     }
 
@@ -89,24 +113,17 @@ fun WikiListScreen(
                 value = state.query,
                 onValueChange = { onIntent(WikiListIntent.QueryChanged(it)) },
                 label = { Text(stringResource(Res.string.search_hint)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (state.items.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(Res.string.no_results),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                LazyColumn(
+            when {
+                state.isLoading -> LoadingBox()
+                state.items.isNotEmpty() -> LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -124,7 +141,7 @@ fun WikiListScreen(
                     }
 
                     if (state.isLoadingMore) {
-                        item {
+                        item(key = "loading-more") {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -140,7 +157,39 @@ fun WikiListScreen(
                                 )
                             }
                         }
+                    } else if (state.loadMoreFailed) {
+                        item(key = "load-more-error") {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.error_generic),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                TextButton(onClick = { onIntent(WikiListIntent.RetryRequested) }) {
+                                    Text(stringResource(Res.string.retry))
+                                }
+                            }
+                        }
                     }
+                }
+
+
+                state.hasError -> ErrorBox(onRetry = { onIntent(WikiListIntent.RetryRequested) })
+
+                else -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(Res.string.no_results),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -198,8 +247,10 @@ private fun WikiItemCard(
 
             if (page.categories.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     page.categories.take(2).forEach { category ->
                         val formattedCategory = category.title.removePrefix("Category:").trim()

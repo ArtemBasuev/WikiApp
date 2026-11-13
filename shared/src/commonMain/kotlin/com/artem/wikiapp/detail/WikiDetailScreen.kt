@@ -6,13 +6,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.artem.wikiapp.data.WikiPage
 import com.artem.wikiapp.ui.CategoryChip
+import com.artem.wikiapp.ui.ErrorBox
+import com.artem.wikiapp.ui.LoadingBox
 import org.jetbrains.compose.resources.stringResource
 
 import wikiapp.shared.generated.resources.Res
@@ -22,6 +26,8 @@ import wikiapp.shared.generated.resources.article_not_found
 import wikiapp.shared.generated.resources.article_source
 import wikiapp.shared.generated.resources.back
 import wikiapp.shared.generated.resources.details_title
+import wikiapp.shared.generated.resources.link_load_failed
+import wikiapp.shared.generated.resources.link_not_found
 import wikiapp.shared.generated.resources.links_title
 import wikiapp.shared.generated.resources.remove_from_favorites
 
@@ -39,8 +45,20 @@ fun WikiDetailScreen(
     val favoriteLabel = stringResource(
         if (isFavorite) Res.string.remove_from_favorites else Res.string.add_to_favorites
     )
+    val snackbarHostState = remember { SnackbarHostState() }
+    val linkNotFoundText = stringResource(Res.string.link_not_found)
+    val linkFailedText = stringResource(Res.string.link_load_failed)
+
+    LaunchedEffect(state.linkError) {
+        val error = state.linkError ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            if (error == LinkLookupError.NotFound) linkNotFoundText else linkFailedText
+        )
+        onIntent(WikiDetailIntent.LinkErrorShown)
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.details_title)) },
@@ -69,110 +87,113 @@ fun WikiDetailScreen(
         },
         modifier = modifier
     ) { innerPadding ->
-        if (state.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-            return@Scaffold
-        }
+        val contentModifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)
 
-        if (page == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
+        when {
+            state.isLoading -> LoadingBox(contentModifier)
+
+            state.hasError -> ErrorBox(
+                onRetry = { onIntent(WikiDetailIntent.RetryRequested) },
+                modifier = contentModifier
+            )
+
+            page == null -> Box(contentModifier) {
                 Text(
                     text = stringResource(Res.string.article_not_found),
                     modifier = Modifier.padding(16.dp)
                 )
             }
-            return@Scaffold
-        }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Text(
-                text = page.title,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = stringResource(Res.string.article_meta, page.length, formatTouched(page.touched)),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (page.categories.isNotEmpty()) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(vertical = 4.dp)
-                ) {
-                    page.categories.forEach { category ->
-                        val formattedCategory = category.title.removePrefix("Category:").trim()
-                        CategoryChip(label = formattedCategory)
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            Text(
-                text = page.extract,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            if (page.links.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = stringResource(Res.string.links_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                page.links.forEach { link ->
-                    Text(
-                        text = "• ${link.title}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onIntent(WikiDetailIntent.LinkClicked(link.title)) }
-                            .padding(vertical = 4.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = stringResource(Res.string.article_source, page.fullurl),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            else -> WikiDetailContent(page = page, onIntent = onIntent, modifier = contentModifier)
         }
     }
 }
 
-private fun formatTouched(touched: String): String {
+@Composable
+private fun WikiDetailContent(
+    page: WikiPage,
+    onIntent: (WikiDetailIntent) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Text(
+            text = page.title,
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = stringResource(Res.string.article_meta, page.length, formatTouched(page.touched)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (page.categories.isNotEmpty()) {
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(vertical = 4.dp)
+            ) {
+                page.categories.forEach { category ->
+                    val formattedCategory = category.title.removePrefix("Category:").trim()
+                    CategoryChip(label = formattedCategory)
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        Text(
+            text = page.extract,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        if (page.links.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = stringResource(Res.string.links_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            page.links.forEach { link ->
+                Text(
+                    text = "• ${link.title}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onIntent(WikiDetailIntent.LinkClicked(link.title)) }
+                        .padding(vertical = 4.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = stringResource(Res.string.article_source, page.fullurl),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+private fun formatTouched(touched: String): String = runCatching {
     val datePart = touched.substringBefore("T")
     val timePart = touched.substringAfter("T").removeSuffix("Z").substringBeforeLast(":")
     val (year, month, day) = datePart.split("-")
-    return "$day.$month.$year $timePart"
-}
+    "$day.$month.$year $timePart"
+}.getOrDefault(touched)
