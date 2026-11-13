@@ -6,10 +6,9 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.kotlinxSerialization) // <-- добавлено
+    alias(libs.plugins.kotlinxSerialization)
 }
 
-// --- добавлено: адрес API и User-Agent живут в gradle.properties, а не в коде ---
 val wikiConfigDir = layout.buildDirectory.dir("generated/wikiConfig/kotlin")
 
 val generateWikiConfig by tasks.registering {
@@ -81,10 +80,10 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
-            implementation(libs.ktor.client.cio) // <-- добавлено
+            implementation(libs.ktor.client.cio)
         }
         commonMain {
-            kotlin.srcDir(generateWikiConfig) // <-- добавлено
+            kotlin.srcDir(generateWikiConfig)
             dependencies {
                 implementation(libs.compose.runtime)
                 implementation(libs.compose.foundation)
@@ -98,7 +97,6 @@ kotlin {
 
                 implementation("org.jetbrains.androidx.navigation3:navigation3-ui:1.0.0-alpha05") // <-- ДОБАВЛЕНО
 
-                // --- добавлено: сеть и разбор ответа ---
                 implementation(libs.kotlinx.coroutinesCore)
                 implementation(libs.kotlinx.serializationJson)
                 implementation(libs.ktor.client.core)
@@ -110,7 +108,6 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
-        // --- добавлено: движок HTTP на каждый таргет ---
         jvmMain.dependencies {
             implementation(libs.ktor.client.cio)
         }

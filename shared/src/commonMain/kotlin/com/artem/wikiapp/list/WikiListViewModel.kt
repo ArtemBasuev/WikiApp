@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private const val PAGE_SIZE = 20
 private const val SEARCH_DEBOUNCE_MS = 400L
@@ -105,13 +107,12 @@ class WikiListViewModel(
 
             repository.searchPages(activeQuery, cursor = nextCursor, limit = PAGE_SIZE).fold(
                 onSuccess = { page ->
+                    val merged = withContext(Dispatchers.Default) {
+                        (_state.value.items + page.items).distinctBy { it.pageid }
+                    }
                     nextCursor = page.nextCursor
                     _state.update {
-                        it.copy(
-                            items = (it.items + page.items).distinctBy { p -> p.pageid },
-                            canLoadMore = page.hasMore,
-                            isLoadingMore = false,
-                        )
+                        it.copy(items = merged, canLoadMore = page.hasMore, isLoadingMore = false)
                     }
                 },
                 onFailure = {
