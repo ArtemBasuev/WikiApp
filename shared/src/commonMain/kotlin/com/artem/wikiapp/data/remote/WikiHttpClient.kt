@@ -10,6 +10,7 @@ import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import io.ktor.client.plugins.HttpTimeout
 
 fun wikiHttpClient(
     baseUrl: String,
@@ -27,5 +28,9 @@ fun wikiHttpClient(
     install(Logging) {
         logger = Logger.SIMPLE
         level = LogLevel.INFO
+    }
+    install(HttpTimeout) {
+        connectTimeoutMillis = 10_000
+        socketTimeoutMillis = 20_000
     }
 }

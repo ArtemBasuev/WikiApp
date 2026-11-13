@@ -122,6 +122,7 @@ fun WikiListScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             when {
+                state.isLoading -> LoadingBox()
                 state.items.isNotEmpty() -> LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize()
@@ -177,7 +178,6 @@ fun WikiListScreen(
                     }
                 }
 
-                state.isLoading -> LoadingBox()
 
                 state.hasError -> ErrorBox(onRetry = { onIntent(WikiListIntent.RetryRequested) })
 

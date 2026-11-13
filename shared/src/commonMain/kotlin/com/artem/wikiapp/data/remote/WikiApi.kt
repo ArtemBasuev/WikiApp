@@ -30,7 +30,7 @@ class WikiApi(
     suspend fun browse(cursor: String?, limit: Int): Result<WikiResponseDto> = request {
         parameter("generator", "allpages")
         parameter("gapnamespace", 0)
-        parameter("gapfilterredir", "nonredirects") // без перенаправлений
+        parameter("gapfilterredir", "nonredirects")
         parameter("gaplimit", limit)
         if (cursor != null) parameter("gapcontinue", cursor)
         pageProps(withLinks = false)
@@ -59,7 +59,7 @@ class WikiApi(
                     parameter("action", "query")
                     parameter("format", "json")
                     parameter("formatversion", 2)
-                    parameter("origin", "*") // CORS для wasm
+                    parameter("origin", "*")
                     configure()
                 }.body()
                 dto.error?.let { throw WikiApiException(it.info.ifBlank { it.code }) }

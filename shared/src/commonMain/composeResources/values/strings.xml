@@ -14,8 +14,8 @@
     <string name="loading_more">Loading more…</string>
     <string name="no_results">Nothing found</string>
     <string name="switch_theme">Switch theme</string>
-    <string name="error_generic">Couldn\'t load data. Check your connection and try again.</string>
+    <string name="error_generic">Couldn't load data. Check your connection and try again.</string>
     <string name="retry">Retry</string>
     <string name="link_not_found">Article not found</string>
-    <string name="link_load_failed">Couldn\'t open the link</string>
+    <string name="link_load_failed">Couldn't open the link</string>
 </resources>
